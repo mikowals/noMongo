@@ -1,9 +1,7 @@
-var linkedCollection = new Meteor.Collection( "linkedCollection" ); // communicates but can not write to database.  See allow deny rules
+var linkedCollection = new Meteor.Collection( null ); // communicates but can not write to database.  See allow deny rules
 
 if (Meteor.isClient) {
-
-  Meteor.subscribe ( 'linkedCollection' );
-
+//  Meteor.subscribe( null );
   Template.hello.greeting = function () {
     return linkedCollection.find({});
   };
@@ -31,7 +29,7 @@ Meteor.methods({
     if ( self.isSimulation ){
       linkedCollection.update( id, modifier );
     } else{
-      noMongo.update( id, modifier, cb );
+      linkedCollection.update( id, modifier, cb );
     }
   }
 });
@@ -42,31 +40,31 @@ if (Meteor.isServer) {
   linkedCollection.allow({
     insert: function( userId, doc )  { 
       noMongo.insert( doc ); // can be done here but might be cleaner to make a fakeInsert method;
-      return false;
+      return true;
     },
     
     update: function(userId, doc, fields, modifier) {
-      return false;
+      return true;
     },
     
     remove: function(userId, doc) {
-      return false;
+      return true;
     }
   });
 
-  Meteor.publish( 'linkedCollection', function() {
+  Meteor.publish( null , function() {
     var self = this;
-    var handle = noMongo.find({}).observe({
+    var handle = linkedCollection.find({}).observe({
 
       added: function (doc){
-	self.added( 'linkedCollection' , doc._id, doc );
+	self.added( null , doc._id, doc );
       },
       removed: function ( doc ){
-	self.removed( 'linkedCollection', doc._id );
+	self.removed( null , doc._id );
       },
     
       changed: function ( doc ){
-	self.changed( 'linkedCollection', doc._id, doc );
+	self.changed( null , doc._id, doc );
       }
     });
     
@@ -74,10 +72,16 @@ if (Meteor.isServer) {
       handle.stop();
     });
     
-    self.ready(); 
+    self.ready();
+/**
+    var published = linkedCollection.find({});
+    console.log( published );
+    return published;
+    **/
   });
   
   Meteor.startup(function () {
+    linkedCollection.insert( {_id: "007", clickCount: 10});
     // code to run on server at startup
   });
 }
